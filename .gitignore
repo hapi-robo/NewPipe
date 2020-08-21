@@ -18,3 +18,7 @@
 bin/
 .vscode/
 *.code-workspace
+
+# temi-adaptation
+*.apk
+docs/
