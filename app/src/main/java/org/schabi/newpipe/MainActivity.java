@@ -22,6 +22,7 @@ package org.schabi.newpipe;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -52,6 +53,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.google.android.material.navigation.NavigationView;
+import com.robotemi.sdk.Robot;
+import com.robotemi.sdk.listeners.OnRobotReadyListener;
 
 import org.schabi.newpipe.extractor.NewPipe;
 import org.schabi.newpipe.extractor.StreamingService;
@@ -80,7 +83,7 @@ import java.util.List;
 
 import static org.schabi.newpipe.util.Localization.assureCorrectAppLanguage;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements OnRobotReadyListener {
     private static final String TAG = "MainActivity";
     public static final boolean DEBUG = !BuildConfig.BUILD_TYPE.equals("release");
 
@@ -103,6 +106,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int ITEM_ID_ABOUT = 1;
 
     private static final int ORDER = 0;
+
+    private Robot robot;
 
     /*//////////////////////////////////////////////////////////////////////////
     // Activity's LifeCycle
@@ -140,6 +145,8 @@ public class MainActivity extends AppCompatActivity {
         if (AndroidTvUtils.isTv(this)) {
             FocusOverlayView.setupFocusObserver(this);
         }
+
+        robot = Robot.getInstance();
     }
 
     private void setupDrawer() throws Exception {
@@ -740,6 +747,35 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Exception e) {
             ErrorActivity.reportUiError(this, e);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////////////////
+    // temi
+    //////////////////////////////////////////////////////////////////////////*/
+    @Override
+    protected void onStart() {
+        super.onStart();
+        robot.addOnRobotReadyListener(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        robot.removeOnRobotReadyListener(this);
+    }
+
+    @Override
+    public void onRobotReady(final boolean isReady) {
+        if (isReady) {
+            try {
+                final ActivityInfo activityInfo = getPackageManager().getActivityInfo(
+                        getComponentName(), PackageManager.GET_META_DATA);
+                robot.onStart(activityInfo);
+            } catch (PackageManager.NameNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+            robot.hideTopBar();
         }
     }
 }
